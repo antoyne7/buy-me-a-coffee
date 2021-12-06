@@ -1,0 +1,10 @@
+{
+  "name": "BuyMeACoffee",
+  "version": "1.0.0",
+  "description": "first look at ethereum integration",
+  "main": "index.js",
+  "repository": "git@github.com:antoyne7/buy-me-a-coffee.git",
+  "author": "Antoine <antoine.brld@gmail.com>",
+  "license": "MIT",
+  "private": false
+}
