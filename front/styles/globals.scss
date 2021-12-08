@@ -1,7 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato&family=Readex+Pro:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@500&family=Readex+Pro:wght@700&display=swap');
  
 :root {
   background-color: #101010;
+}
+
+body {
+  background: radial-gradient(70vw at bottom left, rgba(147, 0, 0, 0.25) 0%, rgba(16, 16, 16, 0.26) 100%),
+    radial-gradient(55vw at top right, rgba(177, 44, 239, 0.34) 0%, rgba(16, 16, 16, 0.26) 100%);
+  backdrop-filter: blur(250px);
 }
 
 html,

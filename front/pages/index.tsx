@@ -1,130 +1,84 @@
 import type { NextPage } from 'next'
-import { useEffect, useState } from 'react';
-import { ethers } from 'ethers'
 
-import Greeter from '../../artifacts/contracts/Greeter.sol/Greeter.json'
-import Token from '../../artifacts/contracts/Token.sol/Token.json'
-
-import Head from 'next/head'
-import Card from '../components/card';
-
+import Toasts from '../components/toast'
 import styles from '../styles/Home.module.scss'
 
-const GREETER_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-const TOKEN_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+import useToasts from '../hooks/use-toasts'
+import PageHead from '../components/head'
+
+const PUBLIC_ADDRESS = '0xAF39A39b9248d07bef05bf2B1F861C17258e5354'
+
+const currencyParams = {
+  eth: {
+    value: '10000000000000', // unit: wei https://eth-converter.com/
+    chainId: '0x1'
+  },
+  matic: {
+    value: '3000000000000000', // unit: wei https://eth-converter.com/
+    chainId: '0x89'
+  }
+}
 
 const Home: NextPage = () => {
-  const [greetingValue, setGreetingValue] = useState('')
-  const [tokenPersonnalAmount, setTokenPersonnalAmount] = useState('')
-  const [tokenToAddress, setTokenToAddress] = useState('')
-  const [tokenToAmount, setTokenToAmount] = useState(0)
+  const { toasts, addToast } = useToasts()
 
-  useEffect(() => {
-    if (typeof window.ethereum === 'undefined') return
-    getTokenBalance()
-  }, [])
-
-  async function requestAccount() {
-    return await window.ethereum.request({ method: 'eth_requestAccounts' });
-  }
-
-  async function fetchGreeting() {
-    if (typeof window.ethereum !== 'undefined') {
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const contract = new ethers.Contract(GREETER_ADDRESS, Greeter.abi, provider)
-      try {
-        const data = await contract.greet()
-        console.log('data: ', data)
-      } catch (err) {
-        console.log("Error: ", err)
-      }
+  async function sendCoffee(currency: 'eth' | 'matic') {
+    if (typeof window.ethereum === 'undefined') {
+      addToast({ message: 'You need a Metamask wallet to send crypto', type: 'error' })
+      return
     }
-  }
 
-  async function setGreeting() {
-    if (!greetingValue) return
-    if (typeof window.ethereum !== 'undefined') {
-      await requestAccount()
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(GREETER_ADDRESS, Greeter.abi, signer)
-      const transaction = await contract.setGreeting(greetingValue)
-      await transaction.wait()
-      fetchGreeting()
-    }
-  }
+    const [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-  async function getTokenBalance() {
-    if (typeof window.ethereum !== 'undefined') {
-      const [account] = await requestAccount()
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: currencyParams[currency].chainId }], // chainId must be in hexadecimal numbers
+    });
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const contract = new ethers.Contract(TOKEN_ADDRESS, Token.abi, provider)
-      try {
-        const balance = await contract.balanceOf(account)
-        console.log('account: %s,\nbalance: %s', account, balance.toString())
-        setTokenPersonnalAmount(balance.toString())
-      } catch (err) {
-        console.log("Error: ", err)
-      }
-    }
-  }
+    const transactionParameters = {
+      to: PUBLIC_ADDRESS,
+      from: account,
+      value: currencyParams[currency].value, // unit: wei https://eth-converter.com/
+      chainId: currencyParams[currency].chainId
+    };
 
-  async function sendToken() {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const signer = provider.getSigner()
-    const contract = new ethers.Contract(TOKEN_ADDRESS, Token.abi, signer)
-    try {
-      const transaction = await contract.transfer(tokenToAddress, tokenToAmount)
-      transaction.wait()
-    } catch (err) {
-      console.log("Error: ", err)
-    }
+    window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [transactionParameters],
+    })
+      .then(() => {
+        addToast({ message: 'Transaction successful ! Thank you !', type: 'success' })
+      })
+      .catch((err: any) => {
+        console.log('err: ', { err })
+        if (err.reason) {
+          addToast({ message: err.reason, type: 'error' })
+          return
+        }
+        addToast({ message: 'Something went wrong :( Check console for more infos', type: 'error' })
+      });
   }
 
   return (
     <div className={styles.mainContainer}>
       <PageHead />
 
-      <main className={styles.main}>
+      <Toasts toasts={toasts} />
 
+      <main className={styles.main}>
         <h1 className={styles.title}>
           Buy me a Coffee
         </h1>
 
-        <Card>
-          <div>
-            <button onClick={fetchGreeting}>fetch greetings</button>
-          </div>
-          <div>
-            <button onClick={setGreeting}>set greeting</button>
-            <input type="text" onChange={(e) => setGreetingValue(e.target.value)} value={greetingValue} placeholder="your greetings" />
-          </div>
-          <br />
-          <br />
-          <div>
-            <button onClick={getTokenBalance}>refresh token balance</button>
-            your balance: {tokenPersonnalAmount}
-          </div>
-          <div>
-            <input type="text" onChange={(e) => setTokenToAddress(e.target.value)} value={tokenToAddress} placeholder="receiver address" />
-            <input type="text" onChange={(e) => setTokenToAmount(parseFloat(e.target.value))} value={tokenToAmount} placeholder="0.000" />
-            <button onClick={sendToken}>send</button>
-          </div>
-        </Card>
-
+        <button className={styles.button} onClick={() => sendCoffee('eth')}>
+          Send ETH coffee
+        </button>
+        <button className={styles.button} onClick={() => sendCoffee('matic')}>
+          Send MATIC coffee
+        </button>
       </main>
     </div>
   )
 }
 
 export default Home
-
-
-const PageHead = () => {
-  return <Head>
-    <title>Buy me a coffee</title>
-    <meta name="description" content="Buy me a coffee app with metamask connection" />
-    <link rel="icon" href="/favicon.ico" />
-  </Head>
-}
