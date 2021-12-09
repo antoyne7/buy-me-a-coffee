@@ -1,27 +1,34 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Toast } from "../components/toast"
 
-export default function (closeAfterSeconds: number = 7) {
+export default function useToast ()  {
+  const toastsRef = useRef<Toast[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
 
+  useEffect(() => {
+    toastsRef.current = toasts
+  }, [toasts])
+  
   const addToast = (item: Toast) => {
     const id = Date.now().toString()
+    console.log('addtoast', toasts);
+  
     setToasts([
-        ...toasts,
+        ...toastsRef.current,
         {
             ...item,
             id: id
         }]
     )
-
-    setTimeout(() => {
-        removeToast(id)
-    }, closeAfterSeconds * 1000);
   }
 
   const removeToast = (id: string) => {
-    setToasts(toasts.filter(toast => toast.id !== id))
+    console.log('removetoast', toasts, id);
+    const value = [...toastsRef.current].filter(toast => toast.id !== id)
+    console.log('will put this:', value);
+    
+    setToasts(value)
   }
 
-  return { toasts, addToast }
+  return { toasts, addToast, removeToast }
 }
